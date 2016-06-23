@@ -66,7 +66,7 @@ class SVGCaptchaWordpressPlugin {
         session_start();
 
         if (!class_exists('SVGCaptcha')) {
-            include_once("SVGCaptcha.php"); // include the captcha lib
+            include_once("src/SVGCaptcha.php"); // include the captcha lib
         }
 
         // Define the default settings:

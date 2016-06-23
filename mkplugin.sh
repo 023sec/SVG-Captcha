@@ -1,2 +1,2 @@
 #!/bin/bash
-zip SVG-Captcha.zip readme.txt glyphs.php js/* plugin.php SVGCaptcha.php
+zip SVG-Captcha.zip readme.txt plugin.php js/* src/SVGCaptcha.php src/glyphs.php

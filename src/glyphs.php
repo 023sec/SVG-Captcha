@@ -1,5 +1,7 @@
 <?php
 
+namespace NikolaiT\Captcha;
+
 /* 
  * This file contains typefaces defined by lines and Bezier curves.
  * 

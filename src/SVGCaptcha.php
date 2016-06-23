@@ -1,4 +1,7 @@
 <?php
+
+namespace NikolaiT\Captcha;
+
 /**
  * This is SVGCaptcha!
  * 
@@ -120,7 +123,7 @@ EOD;
      * @param int $difficulty The difficulty of the captcha to generate. Bigger values tend to decrease the performance.
      * @return SVGCaptcha An unique instance of this class.
      */
-    public function getInstance($numchars, $width, $height, $difficulty = SVGCaptcha::MEDIUM) {
+    public static function getInstance($numchars, $width, $height, $difficulty = SVGCaptcha::MEDIUM) {
         if (!isset(self::$instance))
             self::$instance = new SVGCaptcha($numchars, $width, $height, $difficulty);
 
@@ -884,7 +887,7 @@ EOD;
      */
     private function _shear($p, $mh = 1, $mv = 0) {
         if ($mh * $mv != 0) {
-            throw new InvalidArgumentException(__FUNCTION__ . " _shear called with invalid arguments $p mh: $mh mv: $mv");
+            throw new \InvalidArgumentException(__FUNCTION__ . " _shear called with invalid arguments $p mh: $mh mv: $mv");
         }
         $x = $p->x;
         $y = $p->y;
@@ -913,9 +916,9 @@ EOD;
      */
     private function _approximate_line($line) {
         if (count($line) != 2 || !($line[0] instanceof Point) || !($line[1] instanceof Point)) {
-            throw new InvalidArgumentException(__FUNCTION__ . ": Argument is not an array of two points");
+            throw new \InvalidArgumentException(__FUNCTION__ . ": Argument is not an array of two points");
         } else if ($line[0]->_equals($line[1])) {
-            //throw new InvalidArgumentException(__FUNCTION__.": {$line[0]} and {$line[1]} are equal.");
+            //throw new \InvalidArgumentException(__FUNCTION__.": {$line[0]} and {$line[1]} are equal.");
         }
         /*
           There are several ways to make a bezier curve look like a line. We need to have a threshold
@@ -989,8 +992,8 @@ EOD;
     private function _approximate_bezier($curve, $nlines = False) {
         // Check that we deal with Point arrays only.
         foreach ($curve as $point) {
-            if (get_class($point) != "Point")
-                throw new InvalidArgumentException("curve is not an array of points");
+            if (get_class($point) != Point::class)
+                throw new \InvalidArgumentException("curve is not an array of points");
         }
 
         if (!$nlines || !isset($nlines)) {
@@ -1035,7 +1038,7 @@ EOD;
                 return $lines;
             };
         } else {
-            throw new InvalidArgumentException("Can only approx. 3/4th degree curves.");
+            throw new \InvalidArgumentException("Can only approx. 3/4th degree curves.");
         }
 
         return $approx_func($curve, $nlines);
@@ -1049,13 +1052,13 @@ EOD;
      * @param float $t The parameter t where to split the curve.
      * @param array $left The left subcurve. Passed by reference.
      * @param  array The right subcurve. Passed by reference.
-     * @throws InvalidArgumentException If an array other than full of Points is given.
+     * @throws \InvalidArgumentException If an array other than full of Points is given.
      */
     private function _split_curve($curve, $t, &$left, &$right) {
         // Check that we deal with Point arrays only.
         foreach ($curve as $point) {
-            if (get_class($point) != "Point")
-                throw new InvalidArgumentException("curve is not an array of points");
+            if (get_class($point) != Point::class)
+                throw new \InvalidArgumentException("curve is not an array of points");
         }
 
         if (count($curve) == 1) {
@@ -1107,34 +1110,6 @@ EOD;
 }
 
 /**
- * A simple class to represent points. The components are public members, since working with
- * getters and setters is too pendantic in this context.
- */
-class Point {
-
-    public $x;
-    public $y;
-
-    public function __construct($x, $y) {
-        $this->x = $x;
-        $this->y = $y;
-    }
-
-    public function __toString() {
-        return 'Point(x=' . $this->x . ', y=' . $this->y . ')';
-    }
-
-    public function _equals($p) {
-        if ($p instanceof Point) {
-            return ($this->x == $p->x && $this->y == $p->y);
-        } else {
-            return False;
-        }
-    }
-
-}
-
-/**
  * @author Nikolai Tschacher <admin@incolumitas.com>
  * 
  * Generates cryptographically secure random numbers including the range $start to $stop with 
@@ -1157,13 +1132,13 @@ class Point {
  * @param in bool $secure Whether the call to openssl_random_pseudo_bytes was made securely.
  * @param int $calls The number of calls already made.
  * @return int A random integer within the range (including the edges).
- * @throws InvalidArgumentException Thrown if the input range is invalid.
+ * @throws \InvalidArgumentException Thrown if the input range is invalid.
  * @throws UnexpectedValueException Thrown if openssl_random_pseudo_bytes was called unsecurely.
  * @throws ErrorException Thrown if unpack fails.
  */
 function secure_rand($start, $stop, &$secure = "True", $calls = 0) {
     if ($start < 0 || $stop < 0 || $stop < $start) {
-        throw new InvalidArgumentException("Either stop<start or negative input parameters. Arguments: start=$start, stop=$stop");
+        throw new \InvalidArgumentException("Either stop<start or negative input parameters. Arguments: start=$start, stop=$stop");
     }
     static $LUT; // Lookup table that holds always the last bytes as received by openssl_random_pseudo_bytes.
     static $last_lu;
@@ -1238,7 +1213,7 @@ function secure_rand($start, $stop, &$secure = "True", $calls = 0) {
  */
 function array_secure_rand($input, $num_el = 1, $allow_duplicates = False) {
     if ($num_el > count($input)) {
-        throw new InvalidArgumentException('Cannot choose more random keys from input that are in the array: input_size: ' . count($input) . ' and num_to_pick' . $num_el);
+        throw new \InvalidArgumentException('Cannot choose more random keys from input that are in the array: input_size: ' . count($input) . ' and num_to_pick' . $num_el);
     }
     $keys = array_keys($input);
     $chosen_keys = array();
@@ -1421,4 +1396,3 @@ if (!function_exists('array_column')) {
     }
 
 }
-?>
