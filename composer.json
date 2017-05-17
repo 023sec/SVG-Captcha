@@ -1,8 +1,8 @@
 {
     "name": "arkanite/svg-captcha",
     "description": "A performant SVG Captcha PHP library, without any 3rd party dependency !",
-    "license": "GNU Public License",
-    "homepage": "https://github.com/NikolaiT/SVG-Captcha",
+    "license": "GPL-2.0",
+    "homepage": "https://github.com/arkanite/SVG-captcha",
     "keywords": ["captcha", "svg", "no-dependency"],
     "version": "1.0.0",
     "authors": [
@@ -12,13 +12,11 @@
         }
     ],
     "require": {
-        "php": ">=5.3.3 || ^7.0",
-        "arkanite/svg-captcha": "dev-arkanite"
+        "php": ">=5.3.3"
     },
     "autoload": {
         "psr-4": {
             "NikolaiT\\Captcha\\": "src"
         }
-    },
-    "minimum-stability": "dev"
+    }
 }
