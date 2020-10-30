@@ -1,5 +1,5 @@
 {
-    "name": "arkanite/svg-captcha",
+    "name": "023sec/svg-captcha",
     "description": "A performant SVG Captcha PHP library, without any 3rd party dependency !",
     "license": "GPL-2.0",
     "homepage": "https://github.com/arkanite/SVG-captcha",
