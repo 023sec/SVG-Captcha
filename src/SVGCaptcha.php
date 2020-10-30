@@ -4,41 +4,41 @@ namespace NikolaiT\Captcha;
 
 /**
  * This is SVGCaptcha!
- * 
+ *
  * @author Nikolai Tschacher <admin@incolumitas.com>
  * @copyright (c) 2013, Nikolai Tschacher, incolumitas.com
  * @license http://opensource.org/licenses/gpl-license.php GNU Public License
  * @version 1.0
- * 
+ *
  * It follows a completely different approach then CunningCaptcha. Its goal is to generate
  * SVG captchas (That means: vector graphics) that depict a captcha. This is a nice idea and I found it myself
  * (I am really proud now), but it seems to be already done: https://bitbucket.org/scriptoid/svgcaptcha/
- * 
+ *
  * After a quick glance into this repo, I found it to not suffice my purposes. There's no good reason why I should use it, because
  * it looks utterly unsecure (Text is directly written, position of the chars is determined by (x,y) coordinates and can thus be very
- * easily parsed). 
- * 
+ * easily parsed).
+ *
  * My implementation will draw the captcha text with help of a own font, that consits of Bezier curvatures and straight lines.
- * Then it will apply some mathematical functions on the raw curvature data such that parsing the SVG files and cracking the unerlying pattern becomes 
+ * Then it will apply some mathematical functions on the raw curvature data such that parsing the SVG files and cracking the unerlying pattern becomes
  * difficult (I can't say that it will be hard enough - It's definitely easier to do as to regognize chars from bitmap formats such as .jpb or .png).
- * 
- * Therefore the very first step is: 
+ *
+ * Therefore the very first step is:
  * How can I harden parsing attempts? What does the attacker need to to in order to recognize letters? How should my algorithm look like?
- * 
+ *
  * There are several ideas that come to my mind immediately:
- *  - The points that constitute the curves (that constitute the Glyphs) should be sheared/rotated/translated with affine transformations and 
+ *  - The points that constitute the curves (that constitute the Glyphs) should be sheared/rotated/translated with affine transformations and
  *    random parameters.
  *  - Every captcha should be defined by one single path element. Thus it becomes impossible to differentiate between single glyphs, because all glyphs
  *    are drawn with one "stroke".
- * 
+ *
  * The SVG path specification in short:
- * Commands: M = moveto, L = lineto, C = curveto,  Z = closepath 
+ * Commands: M = moveto, L = lineto, C = curveto,  Z = closepath
  * Relative versions of commands: Uppercase means absoute, lowercase means relative. All coordinate values are relative to the point at the start of the command.
  * Alternate versions of lineto are available in case of horizontal and vertical lines:
  *    H/h draws a horizontal line from the current point (cpx, cpy) to (x, cpy). Multiple x values can be provided (which doesen't make sense, but it might be a neat idea!)
  *    V/v draws a vertical line fro the current point (cpx, cpy) to (cpx, y). Multiple y values can be provided.
  * Alternate versions of curve are available where some control points on the current segment can be determined from control points of the previous segment:
- * 
+ *
  * Commands:
  * moveto: M/m, establishes a new current point. A path data segment must begin with a moveto. Subsequent moveto commands represent the start of a new subpath.
  * closepath: Z/z, ends the current subpath and causes an automatic straight line to be drawn from the current point to the initial point of the current subpath.
@@ -50,7 +50,7 @@ namespace NikolaiT\Captcha;
  * quadratic curveto: Q/q, parameters: (x1, y1, x, y)+. Draws a quadratic Bezier curve from the current point to (x, y) using (x1, y1) as the control point.
  * smooth quadratic curveto: T/t, parameters: (x, y)+. Draws a quadratic Bezier curve from the current point to (x,y). The control point is assumed to be the reflection of
  * the control point of the previous command relative to the current point.
- * 
+ *
  */
 class SVGCaptcha {
 
@@ -59,8 +59,8 @@ class SVGCaptcha {
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
     "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-            
-<svg 
+
+<svg
    xmlns:svg="http://www.w3.org/2000/svg"
    xmlns="http://www.w3.org/2000/svg"
    width="{{width}}"
@@ -108,15 +108,15 @@ EOD;
 
     // The answer to the generated captcha.
     private $captcha_answer = "";
-    
+
 
     /**
      * Singleton pattern. A SVGCaptcha instance only exists once manages it's unique object.
      * It follows basically a factory pattern.
-     * 
-     * This constructor wrapper is called to create such a unique instance. If this is called more than 
+     *
+     * This constructor wrapper is called to create such a unique instance. If this is called more than
      * once, it just returns the single instance of SVGCaptcha that it keeps in a static variable.
-     * 
+     *
      * @param int $numchars The number of glyphs that the captcha will contain.
      * @param int $width The width (in pixels) of the captcha.
      * @param int $height The height of the captcha.
@@ -132,7 +132,7 @@ EOD;
 
     /**
      * The constructor. It creates a SVGCatpcha object (What else?).
-     * 
+     *
      * @param int $numchars The number of glyphs the captcha will contain.
      * @param int $width The width of the captcha.
      * @param int $height The height of the captcha.
@@ -141,16 +141,16 @@ EOD;
      */
     private function __construct($numchars, $width, $height, $difficulty) {
         include_once "glyphs.php";
-        
+
         $this->alphabet = $alphabet;
-        
+
         $this->numchars = ($numchars > count($this->alphabet) ? count($this->alphabet) : $numchars);
 
         $this->width = $width;
         $this->height = $height;
         $this->difficulty = $difficulty;
 
-        // Set the parameters for the algorithms according to the user 
+        // Set the parameters for the algorithms according to the user
         // supplied difficulty.
         if ($this->difficulty == self::EASY) {
             $this->dsettings['glyph_fragments']['apply'] = True;
@@ -205,7 +205,7 @@ EOD;
 
     /**
      * Wrapper around generate(). See this function for more info.
-     * 
+     *
      * @return array()
      */
     public function getSVGCaptcha() {
@@ -214,16 +214,16 @@ EOD;
 
     /**
      * This function generates a SVG d attribute of a path element. The d attribute represents the path data.
-     * 
+     *
      * The function takes an parameter $clength as input and modifies the appearance of the $clength randomly chosen
      * glyphs of the alphabet, such that viewers can still recognize the original glyph but programs fail so (or do very bad compared to humans).
-     * 
+     *
      * The following random distortion mechanisms are the backbone of the captchs's security strength:
      * - All glpyhs are packed into a single d attribute.
      * - Point representation changes from absolute to relative on a random base.
      * - Cubic Bezier curves are converted to quadratic splines and vice versa.
      * - Bezier curves are approximated by lines. Lines are represented as bezier curves.
-     * - Parts of glyphs (That is: Some of their geometrical primitives) are copied and inserted at some random place in the canvas. 
+     * - Parts of glyphs (That is: Some of their geometrical primitives) are copied and inserted at some random place in the canvas.
      *   This technique spreads confusion for cracking parsers, since it becomes harder to distinguish between real glyphs and meaningless glyph fragments. Possible drawback:
      *   Crackers have easier play to gues what glyhps are used, because more 'evidence' of glyphs is present.
      * - All input points undergo affine transformation matrices (Rotation/Skewing/Translation/Scaling).
@@ -232,11 +232,11 @@ EOD;
      *   More precise: The imaginal pen jumps from glyph to glyph with the Moveto (M/m) command in a unpredictable manner.
      * - In order to make analyses as hard as possible, we need to connect each glyph in a matther that makes it unfeasible to distinguish
      *   the glyph entities. For instance: If every glyph was drawn in a separate subpath in the d attribute, it'd be very easy to recognize the single glyphs.
-     *   Furthermore there must be some countermeasures to make out the glyphs by their coordinate values. Hence they need to overlap to a certain degree that makes it 
+     *   Furthermore there must be some countermeasures to make out the glyphs by their coordinate values. Hence they need to overlap to a certain degree that makes it
      *   hard to assign geometrical primitives to a certain glyph entity.
-     * 
+     *
      * Note: The majority of the above methods try to hinder cracking attempts that try to match the distorted path
-     *       elements against the original path data (Which of course are public). 
+     *       elements against the original path data (Which of course are public).
      *       This means that there remains the traditional cracking attempt: Common OCR techniques on a SVG captcha, that is converted to a bitmap format.
      *       Hence, some more blurring techniques, especially for traditinoal attacks, are applied:
      * - Especially to prevent OCR techniques, independent random shapes are injected into the d attribute.
@@ -259,11 +259,11 @@ EOD;
                     $packed[$key]['glyph_data'][] = $shape;
                 }
             }
-            $this->captcha_answer[] = $key;
+            $this->captcha_answer .= $key;
         }
 
         /*
-         * First of all, the glyphs need to be scaled such that the biggest glyph becomes a fraction of the 
+         * First of all, the glyphs need to be scaled such that the biggest glyph becomes a fraction of the
          * height of the overall height.
          */
         $this->_scale_by_largest_glyph($packed);
@@ -280,7 +280,7 @@ EOD;
         /*
          * Now every glyph has a unique size (as defined by their typeface) and they overlap all more or less if we would draw them directly.
          * Therefore we need to align them horizontally/vertically such that the (n+1)-th glyph overlaps not more than to than half of the horizontal width of the n-th glyph.
-         * 
+         *
          * In order to do so, we need to know the widths/heights of the glyphs. It is assumed that this information is held in the alphabet array.
          */
         if ($this->dsettings["glyph_offsetting"]["apply"]) {
@@ -294,7 +294,7 @@ EOD;
         }
 
         /*
-         * Finally, we generate a single array of shapes, and then shuffle it. Therefore we cannot 
+         * Finally, we generate a single array of shapes, and then shuffle it. Therefore we cannot
          * longer distinguish which shape belongs to which glyph.
          */
         foreach ($packed as $char => $value) {
@@ -303,9 +303,9 @@ EOD;
             }
         }
         /* Shuffle Mhuffle it!
-         * 
+         *
          * I think a call to shuffle() is not really unsecure in this case. Maybe this needs to be
-         * done with a secure PRNG in the future. 
+         * done with a secure PRNG in the future.
          */
         shuffle($shapearray);
 
@@ -316,12 +316,12 @@ EOD;
 
         /*
          * Here is the part where the rest of the magic happens!
-         * 
-         * Let's modify the shapes. It is perfectly possible that a single 
-         * shape get's downgraded and afterwards approximated with lines wich 
+         *
+         * Let's modify the shapes. It is perfectly possible that a single
+         * shape get's downgraded and afterwards approximated with lines wich
          * somehow neutralizes the downgrade. But this happens rarily.
-         * 
-         * Any of the following methods may change the input array! So they cannot be run 
+         *
+         * Any of the following methods may change the input array! So they cannot be run
          * in a for loop, because keys will ge messed up.
          */
 
@@ -367,7 +367,7 @@ EOD;
     /**
      * This function replaces all parameters in the SVG skeleton with the computed
      * values and finally returns the SVG string.
-     * 
+     *
      * @param str $path_str The string holding the path data for the path d attribute.
      * @return array An array of the captcha answer and the svg output for the captcha image.
      */
@@ -378,13 +378,13 @@ EOD;
         /* Update the d path attribute */
         $svg_output = str_replace("{{pathdata}}", $path_str, $svg_output);
 
-        return array(implode($this->captcha_answer, ""), $svg_output);
+        return array(implode($this->captcha_answer, []), $svg_output);
     }
 
     /**
      * Takes the prechosen glyphs as input and copies random shapes of some
      * randomly chosen glyhs and randomly translates them and adds them to the glyhp array.
-     * 
+     *
      * @param array $glyphs The glyph array.
      * @return array The modified glyph array.
      */
@@ -416,7 +416,7 @@ EOD;
             if (count($shape_keys) > 0 && !empty($shape_keys)) {
                 $pos = (($rel = $glyphs[$key]["glyph_data"][$shape_keys[0]][0]->x) > $this->width / 2) ? false : true;
                 $x_translate = ($pos) ? secure_rand(abs($rel), $this->width) : - secure_rand(0, abs($rel));
-                $y_translate = (microtime() & 1) ? -secure_rand(0, $this->width / 5) : secure_rand(0, $this->width / 5);
+                $y_translate = (microtime(true) & 1) ? -secure_rand(0, $this->width / 5) : secure_rand(0, $this->width / 5);
                 $a = $this->_ra(0.6);
                 foreach ($shape_keys as $skey) {
                     $copy = array_copy($glyphs[$key]["glyph_data"][$skey]);
@@ -431,20 +431,20 @@ EOD;
 
     /**
      * Insert ranomly generated shapes into the shapearray(mandelbrot like distortios would be awesome!).
-     * 
-     * The idea is to replace certain basic shapes such as curves or lines with a geometrical 
-     * figure that distorts the overall picture of the glyph. Such a figure could be generated randomly, the 
-     * only constraints are, that the start point and end point of the replaced shape coincide with the 
+     *
+     * The idea is to replace certain basic shapes such as curves or lines with a geometrical
+     * figure that distorts the overall picture of the glyph. Such a figure could be generated randomly, the
+     * only constraints are, that the start point and end point of the replaced shape coincide with the
      * randomly generated substitute.
-     * 
-     * A second approach is to add such random shapes without replacing existing ones. 
-     * 
+     *
+     * A second approach is to add such random shapes without replacing existing ones.
+     *
      * This function does both of the above. The purposes for this procedure is to make
      * OCR techniques more cumbersome.
-     * 
+     *
      * Note: Currently, only the second construct is implemented due to the likely
      * difficulty involving the first idea.
-     * 
+     *
      *
      * @param array $shapearray
      * @return array The shapearray merged with randomly generated shapes.
@@ -452,7 +452,7 @@ EOD;
     private function _shapeify($shapearray) {
         $random_shapes = array();
 
-        // How many random shapes? 
+        // How many random shapes?
         $ns = secure_rand(min($this->dsettings["shapeify"]["r_num_shapes"]), max($this->dsettings["shapeify"]["r_num_shapes"]));
 
         foreach (range(0, $ns) as $i) {
@@ -464,7 +464,7 @@ EOD;
 
     /**
      * Generates a randomly placed shape in the coordinate system.
-     * 
+     *
      * @return array An array of arrays constituting glyphs.
      */
     private function _random_shape() {
@@ -510,9 +510,9 @@ EOD;
 
     /**
      * Does not change the size/keys of the input array!
-     * 
+     *
      * Elevates maybe the curvature degree of a quadratic curve to a cubic curve.
-     * 
+     *
      * @param array $shapearray
      * @return bool Vacously true.
      */
@@ -525,7 +525,7 @@ EOD;
                 /*
                  * We only deal with quadratic splines. Their degree is elevated
                  * to a cubic curvature.
-                 * 
+                 *
                  * we pick "1/3rd start + 2/3rd control" and "2/3rd control + 1/3rd end",
                  * and now we have exactly the same curve as before, except represented
                  * as a cubic curve, rather than a quadratic curve.
@@ -544,7 +544,7 @@ EOD;
 
     /**
      * Split quadratic and cubic bezier curves in two components.
-     * 
+     *
      * @param array $shapearray
      * @return array The updated shapearray.
      */
@@ -576,9 +576,9 @@ EOD;
     }
 
     /**
-     * Approximates maybe a curve with lines or maybe converts lines to quadratic or cubic 
+     * Approximates maybe a curve with lines or maybe converts lines to quadratic or cubic
      * bezier splines (With a slight curvaceous shape).
-     * 
+     *
      * @param array $shapearray The array holding all shapes.
      * @return array The udpated shapearray.
      */
@@ -598,7 +598,7 @@ EOD;
                     $merge = array_merge($merge, $lines);
                 } else if (count($shape) == 2) {
                     /*
-                     * This is FUN: Approximate lines with curves! There are no limits for 
+                     * This is FUN: Approximate lines with curves! There are no limits for
                      * your imagination
                      */
                     self::V("approximating lines by curves");
@@ -611,9 +611,9 @@ EOD;
     }
 
     /**
-     * Transforms an array of points into its according SVG path command. Assumes that the 
+     * Transforms an array of points into its according SVG path command. Assumes that the
      * "current point" is already existant.
-     * 
+     *
      * @param array $shape The array of points to convert.
      * @param bool $absolute Whether the $path command is absolute or not.
      * @param bool $explicit_moveto If we should add an explicit moveto before the command.
@@ -643,10 +643,10 @@ EOD;
     }
 
     /**
-     * Scales all the glyphs by the glyph with the biggest height such that 
+     * Scales all the glyphs by the glyph with the biggest height such that
      * the lagerst glyph is 2/3 of the pictue height.
-     * 
-     * @param array $glyphs All the glyphs of the shapearray. 
+     *
+     * @param array $glyphs All the glyphs of the shapearray.
      */
     private function _scale_by_largest_glyph(&$glyphs) {
         // $this->width = 2 * $my*$what <=> $what = $this->width/2/$my
@@ -666,7 +666,7 @@ EOD;
 
     /**
      * Algins the glyphs horizontally and vertically in a random way.
-     * 
+     *
      * @param array $glyphs The glyphs to algin.
      */
     private function _align_randomly(&$glyphs) {
@@ -694,10 +694,10 @@ EOD;
             $cnt++;
         }
         /*
-         * Reevaluate the width of the image by the accumulated offset + 
-         * the width of the last glyph + a random padding of maximally the last 
+         * Reevaluate the width of the image by the accumulated offset +
+         * the width of the last glyph + a random padding of maximally the last
          * glpyh's half size.
-         * 
+         *
          */
         $this->width = $accumulated_hoffset + $glyph["width"] +
                 secure_rand($glyph["width"] * $overlapf_h, $glyph["width"]);
@@ -705,7 +705,7 @@ EOD;
 
     /**
      * SHAKE IT BABY!
-     * 
+     *
      * This function distorts the coordinate system of every glyph on two levels:
      * First it chooses a set of affine transformations randomly. Then it distorts the coordinate
      * system by feeding the transformations random arguments.
@@ -722,7 +722,7 @@ EOD;
 
     /**
      * Generates random transformations based on the difficulty settings.
-     * 
+     *
      * @return array Returns an array of (random) transformations.
      */
     private function _get_random_transformations() {
@@ -764,10 +764,10 @@ EOD;
 
     /**
      * Recursive function.
-     * 
+     *
      * Applies the function $callback recursively on every point found in $data.
      * The $callback function needs to have a point as its first argument.
-     * 
+     *
      * @param array $data An array holding point instances.
      * @param array $callback The function to call for any point.
      * @param array $args An associative array with parameter names as keys and arguments as values.
@@ -792,7 +792,7 @@ EOD;
 
     /**
      * Returns a random angle.
-     * 
+     *
      * @param int (Optional). Specifies the upper bound in radian.
      * @return int
      */
@@ -805,7 +805,7 @@ EOD;
 
     /**
      * Returns a random scale factor.
-     * 
+     *
      * @return int
      */
     private function _rs() {
@@ -814,9 +814,9 @@ EOD;
     }
 
     /**
-     * Returns a random t parameter between 0-1 and 
+     * Returns a random t parameter between 0-1 and
      * if $inclusive is True, including zero and 0.
-     * 
+     *
      * @param bool $inclusive Description
      * @return int The value between 0-1
      */
@@ -832,7 +832,7 @@ EOD;
     /**
      * Applies a rotation matrix on a point:
      * (x, y) = cos(a)*x - sin(a)*y, sin(a)*x + cos(a)*y
-     * 
+     *
      * @param Point $p The point to rotate.
      * @param float $a The rotation angle.
      */
@@ -846,7 +846,7 @@ EOD;
     /**
      * Applies a skew matrix on a point:
      * (x, y) = x+sin(a)*y, y
-     * 
+     *
      * @param Point $p The point to skew.
      * @param float $a The skew angle.
      */
@@ -859,7 +859,7 @@ EOD;
     /**
      * Scales a point with $sx and $sy:
      * (x, y) = x*sx, y*sy
-     * 
+     *
      * @param Point $p The point to scale.
      * @param float $s The scale factor for the x/y-component.
      */
@@ -872,15 +872,15 @@ EOD;
 
     /**
      * http://en.wikipedia.org/wiki/Shear_mapping
-     * 
+     *
      * Displace every point horizontally by an amount proportionally
-     * to its y(horizontal shear) or x(vertical shear) coordinate. 
-     * 
+     * to its y(horizontal shear) or x(vertical shear) coordinate.
+     *
      * Horizontal shear: (x, y) = (x + mh*y, y)
      * Vertical shear: (x, y) = (x, y + mv*x)
-     * 
+     *
      * One shear factor needs always to be zero.
-     * 
+     *
      * @param Point $p
      * @param float $mh The shear factor for horizontal shear.
      * @param float $mv The shear factor for vertical shear.
@@ -910,7 +910,7 @@ EOD;
     }
 
     /**
-     * 
+     *
      * @param array $line
      * @return array An array of points constituting the approximated line.
      */
@@ -924,7 +924,7 @@ EOD;
           There are several ways to make a bezier curve look like a line. We need to have a threshold
           that determines how big the distance from a particular but arbitrarily chosen control point is
           from the original line. Naturally, such a distance must be rather small...
-         * 
+         *
          * General principle: The points that determine the line must be the same as the at least
          * two points of the Bezier curve. The remaining points can be anywhere on the imaginable straight line.
          * This induces that also control points can represent the lines defining points and thus the resulting
@@ -947,7 +947,7 @@ EOD;
             $minx = min($line[0]->x, $line[1]->x);
             $miny = min($line[0]->y, $line[1]->y);
 
-            // Now get a point on the line. 
+            // Now get a point on the line.
             // Remember: f(x) = mx + d
             // But watch out! Lines parallel to the y-axis promise trouble! Just change these a bit :P
             if (($line[1]->x - $line[0]->x) == 0) {
@@ -983,9 +983,9 @@ EOD;
     }
 
     /**
-     * Approximates a quadratic/cubic Bezier curves by $nlines lines. If $nlines is False or unset, a random $nlines 
+     * Approximates a quadratic/cubic Bezier curves by $nlines lines. If $nlines is False or unset, a random $nlines
      * between 10 and 20 is chosen.
-     * 
+     *
      * @param array $curve An array of three or four points representing a quadratic or cubic Bezier curve.
      * @return array Returns an array of lines (array of two points).
      */
@@ -1047,7 +1047,7 @@ EOD;
     /**
      * This functon splits a curve at a given point t and returns two subcurves:
      * The right and left one. Note: The right array needs to be reversed before useage.
-     * 
+     *
      * @param array $curve The curve to split.
      * @param float $t The parameter t where to split the curve.
      * @param array $left The left subcurve. Passed by reference.
@@ -1082,7 +1082,7 @@ EOD;
 
     /**
      * Debug function.
-     * 
+     *
      * @param string $msg
      */
     public static function D($msg) {
@@ -1098,7 +1098,7 @@ EOD;
 
     /**
      * Note that some action happened.
-     * 
+     *
      * @param string $msg
      */
     public static function V($msg) {
@@ -1111,11 +1111,11 @@ EOD;
 
 /**
  * @author Nikolai Tschacher <admin@incolumitas.com>
- * 
- * Generates cryptographically secure random numbers including the range $start to $stop with 
+ *
+ * Generates cryptographically secure random numbers including the range $start to $stop with
  * good performance (especiall for ranges from 0-255)!
- * Calls to openssl_random_pseudo_bytes() are cached in a array $LUT. 
- * For instance, you need only around 2 calls to openssl_random_pseudo_bytes in order to obtain 
+ * Calls to openssl_random_pseudo_bytes() are cached in a array $LUT.
+ * For instance, you need only around 2 calls to openssl_random_pseudo_bytes in order to obtain
  * 1000 random values between 0 and 200. This ensures good performance!
  *
  * Both parameters need to be positive. If you need a negative random value, just pass positiv values
@@ -1125,7 +1125,7 @@ EOD;
  * Always check for false with "===" operator, otherwise a fail might shadow a valid
  * random value: zero. You can pass the boolean parameter $secure. If it is true, the random value is
  * cryptographically secure, else it was generated with rand().
- * 
+ *
  * @staticvar array $LUT A lookup table to store bytes from calls to secure_random_number
  * @param int $start The bottom border of the range.
  * @param int $stop The top border of the range.
@@ -1205,7 +1205,7 @@ function secure_rand($start, $stop, &$secure = "True", $calls = 0) {
 
 /**
  * Secure replacement for array_rand().
- * 
+ *
  * @param array $input The input array.
  * @param int $num_el (Optional). How many elements to choose from the input array.
  * @param bool $allow_duplicates (Optional). Whether to allow choosing random values more than once.
@@ -1236,7 +1236,7 @@ function array_secure_rand($input, $num_el = 1, $allow_duplicates = False) {
 
 /**
  * Little helper function for array_secure_rand().
- * 
+ *
  * @return mixed Returns a key that is in $key_pool but no in $already_picked
  */
 function pick_remaining($key_pool, $already_picked) {
@@ -1246,7 +1246,7 @@ function pick_remaining($key_pool, $already_picked) {
 
 /**
  * Shuffle an array while preserving key/value mappings.
- * 
+ *
  * @param array $array The array to shuffle.
  * @return boolean Whether the action was successful.
  */
@@ -1265,9 +1265,9 @@ function shuffle_assoc(&$array) {
 
 /**
  * Copies arrays while shallow copying their values.
- * 
+ *
  * http://stackoverflow.com/questions/6418903/how-to-clone-an-array-of-objects-in-php
- * 
+ *
  * @param array $arr The array to copy
  * @return array
  */
@@ -1285,7 +1285,7 @@ function array_copy($arr) {
 }
 
 /**
- *  Some handy debugging functions. Send me a letter for Christmas! 
+ *  Some handy debugging functions. Send me a letter for Christmas!
  * @param array $array The array to print recursivly.
  */
 function D($a) {
