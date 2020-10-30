@@ -378,7 +378,7 @@ EOD;
         /* Update the d path attribute */
         $svg_output = str_replace("{{pathdata}}", $path_str, $svg_output);
 
-        return array(implode($this->captcha_answer, []), $svg_output);
+        return array($this->captcha_answer, $svg_output);
     }
 
     /**
